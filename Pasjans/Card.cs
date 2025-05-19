@@ -60,5 +60,15 @@
             if (Rank == "10") return $"10{Icon}";
             return $"{Rank} {Icon}";
         }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Card other && other.Suit == Suit && other.Rank == Rank;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 }

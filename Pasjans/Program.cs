@@ -8,6 +8,7 @@ namespace Pasjans
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
+            Console.Title = "Pasjans";
 
             Game game = new Game();
             while (true)

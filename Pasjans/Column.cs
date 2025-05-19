@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Pasjans
@@ -6,7 +7,7 @@ namespace Pasjans
     /// <summary>
     /// Pojedyncza kolumna w rozgrywce
     /// </summary>
-    internal class Column
+    internal class Column : IEnumerable<Card>
     {
         public List<Card> Cards { get; }
 
@@ -30,6 +31,15 @@ namespace Pasjans
                 sb.AppendLine();
             }
             return sb.ToString();
+        }
+
+        public IEnumerator<Card> GetEnumerator()
+        {
+            return this.Cards.GetEnumerator();
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

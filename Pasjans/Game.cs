@@ -211,18 +211,37 @@ namespace Pasjans
                 case "S":
                     {
                         Console.WriteLine("Wybierz kolumnę");
-                        int col = int.Parse(Console.ReadLine());
+                        int targetCol = int.Parse(Console.ReadLine())-1;
                         Console.WriteLine("Wybierz kartę");
-                        int i = 1;
-                        foreach(Card card in Columns[col-1].Cards)
+                        int i = 0;
+                        foreach(Card card in Columns[targetCol])
                         {
                             i++;
                             if (card.Covered == true) { continue; }
                             Console.WriteLine($"{i}. "+card);
                         }
-                        int cardChoice = int.Parse(Console.ReadLine());
-                        Console.WriteLine("Przenieś do innej kolumny");
-                        // Columns[col-1].Cards[card-1]
+                        int cardChoice = int.Parse(Console.ReadLine())-1;
+                        Card chosen = Columns[targetCol].Cards[cardChoice];
+                        Console.WriteLine("Przenieś do której kolumny?");
+                        int destCol = int.Parse(Console.ReadLine())-1;
+                        Column newCol = new Column();
+                        if (ValidMovement(chosen, Columns[destCol]))
+                        {
+                            bool skip = true;
+                            foreach (Card card in Columns[targetCol])
+                            {
+
+                                if (card.Covered && skip) { newCol.Cards.Add(card); }
+                                else if (card != chosen && skip) { skip = false; }
+                                else { Columns[destCol].Cards.Add(card); }
+                            }
+                            Columns[targetCol] = newCol;
+                            Columns[targetCol][Columns[targetCol].Cards.Count-1].Covered = false;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Ten ruch nie jest dozwolony.");
+                        }
                         break;
                     }
                 case "T":
