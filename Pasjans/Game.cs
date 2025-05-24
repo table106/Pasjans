@@ -13,12 +13,12 @@ namespace Pasjans
     {
         public List<Column> Columns { get; }
         private List<Card> Deck;
-        private readonly Dictionary<string, List<Card>> Stack;
-        private Card DeckCard;
+        private readonly Dictionary<string, List<Card>> FinalStacks;
+        private Card RevealedCard;
         private List<Card> SpentDeck;
         private static readonly Random random = new Random();
-        private static readonly string[] RANKS = { "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2", "A" };
-        private static readonly string[] SUITS = { "spades", "hearts", "diamonds", "clubs" };
+        public static readonly string[] RANKS = { "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2", "A" };
+        public static readonly string[] SUITS = { "spades", "hearts", "diamonds", "clubs" };
 
         public Game()
         {
@@ -34,14 +34,14 @@ namespace Pasjans
             ShuffleDeck();
 
             // create finish stack
-            Stack = new Dictionary<string, List<Card>>();
+            FinalStacks = new Dictionary<string, List<Card>>();
             foreach (string suit in SUITS)
             {
-                Stack.Add(suit, new List<Card>());
+                FinalStacks.Add(suit, new List<Card>());
             }
 
             // define deck card and spent deck
-            DeckCard = null;
+            RevealedCard = null;
             SpentDeck = new List<Card>();
 
             // create columns
@@ -80,13 +80,13 @@ namespace Pasjans
         /// </summary>
         private void NextDeckCard()
         {
-            if (DeckCard != null)
+            if (RevealedCard != null)
             {
-                DeckCard.Covered = true;
-                SpentDeck.Add(DeckCard);
+                RevealedCard.Covered = true;
+                SpentDeck.Add(RevealedCard);
             }
-            DeckCard = Deck[0];
-            DeckCard.Covered = false;
+            RevealedCard = Deck[0];
+            RevealedCard.Covered = false;
             Deck.RemoveAt(0);
         }
 
@@ -98,12 +98,12 @@ namespace Pasjans
         /// <returns><c>bool</c>: Poprawność ruchu</returns>
         private bool ValidMovement(Card target, Column dest)
         {
-            Card last = dest[dest.Cards.Count - 1];
             if (dest.Cards.Count == 0)
             {
                 return target.Rank == "K";
             }
-            else if (last.Rank == "2")
+            Card last = dest.Last();
+            if (last.Rank == "2")
             {
                 return false;
             }
@@ -121,7 +121,7 @@ namespace Pasjans
             {
                 return target.Rank == "A";
             }
-            return Array.IndexOf(RANKS, dest[dest.Count-1].Rank) + 1 == Array.IndexOf(RANKS, target.Rank);
+            return Array.IndexOf(RANKS, dest[dest.Count-1].Rank) - 1 == Array.IndexOf(RANKS, target.Rank);
         }
 
         /// <summary>
@@ -132,9 +132,9 @@ namespace Pasjans
             StringBuilder ret = new StringBuilder();
 
             // odkryta
-            if (DeckCard != null)
+            if (RevealedCard != null)
             {
-                ret.Append(DeckCard.ToString()+"   ");
+                ret.Append(RevealedCard.ToString()+"   ");
             }
             else
             {
@@ -152,10 +152,10 @@ namespace Pasjans
             }
             
             // stosy końcowe
-            foreach (var stack in Stack)
+            foreach (var stack in FinalStacks)
             {
                 int topCardIndex = stack.Value.Count - 1;
-                if (topCardIndex < 0) { ret.Append("---   "); }
+                if (topCardIndex < 0 || stack.Value[topCardIndex] == null) { ret.Append("---   "); }
                 else { ret.Append(stack.Value[topCardIndex].ToString() + "   "); }
             }
             ret.Length--;
@@ -201,9 +201,9 @@ namespace Pasjans
         {
             Console.WriteLine("Jaki chcesz wykonać ruch?");
             Console.WriteLine("[S] - Przełożyć karty ze stołu");
-            Console.WriteLine("[T] - Przełożyć kartę z talii");
+            Console.WriteLine("[T] - Przełożyć odkrytą kartę z talii");
             Console.WriteLine("[N] - " + (Deck.Count != 0 ? "Odkryć kartę z talii" : "Przetasować talię"));
-            Console.WriteLine("[F] - Przełożyć kartę ze stosu końcowego");
+            Console.WriteLine("[K] - Przełożyć kartę ze stosu końcowego");
             string choice = Console.ReadLine();
             choice = choice.ToUpper();
             switch (choice)
@@ -211,67 +211,95 @@ namespace Pasjans
                 case "S":
                     {
                         Console.WriteLine("Wybierz kolumnę");
-                        int targetCol = int.Parse(Console.ReadLine())-1;
+                        int targetColIndex = int.Parse(Console.ReadLine())-1;
+                        Column targetCol = Columns[targetColIndex];
                         Console.WriteLine("Wybierz kartę");
                         int i = 0;
-                        foreach(Card card in Columns[targetCol])
+                        foreach(Card card in targetCol)
                         {
                             i++;
                             if (card.Covered == true) { continue; }
                             Console.WriteLine($"{i}. "+card);
                         }
-                        int cardChoice = int.Parse(Console.ReadLine())-1;
-                        Card chosen = Columns[targetCol].Cards[cardChoice];
-                        Console.WriteLine("Przenieś do której kolumny?");
-                        int destCol = int.Parse(Console.ReadLine())-1;
-                        Column newCol = new Column();
-                        if (ValidMovement(chosen, Columns[destCol]))
+                        int cardChoiceIndex = int.Parse(Console.ReadLine())-1;
+                        Card chosenCard = targetCol.Cards[cardChoiceIndex];
+                        Console.WriteLine("Przenieś na\n[S] - stół\n[K] - stos końcowy");
+                        choice = Console.ReadLine();
+                        choice = choice.ToUpper();
+                        if (choice == "S")
                         {
-                            bool skip = true;
-                            foreach (Card card in Columns[targetCol])
+                            Console.WriteLine($"Przenieś {chosenCard} do której kolumny?");
+                            int destColIndex = int.Parse(Console.ReadLine()) - 1;
+                            Column destCol = Columns[destColIndex];
+                            Column newCol = new Column();
+                            if (ValidMovement(chosenCard, destCol))
                             {
+                                int countToMove = targetCol.Cards.Count - cardChoiceIndex;
+                                List<Card> cardsToMove = targetCol.Cards.GetRange(cardChoiceIndex, countToMove);
+                                targetCol.Cards.RemoveRange(cardChoiceIndex, countToMove);
+                                destCol.Cards.AddRange(cardsToMove);
 
-                                if (card.Covered && skip) { newCol.Cards.Add(card); }
-                                else if (card != chosen && skip) { skip = false; }
-                                else { Columns[destCol].Cards.Add(card); }
+                                if (targetCol.Cards.Count > 0) targetCol.Last().Covered = false;
                             }
-                            Columns[targetCol] = newCol;
-                            Columns[targetCol][Columns[targetCol].Cards.Count-1].Covered = false;
+                            else
+                            {
+                                Console.WriteLine("Ten ruch nie jest dozwolony.");
+                            }
+                        }
+                        else if (choice == "K")
+                        {
+                            List<Card> dest = FinalStacks[chosenCard.Suit];
+                            if (!(Array.IndexOf(targetCol.ToArray(), chosenCard) == targetCol.Cards.Count - 1))
+                            {
+                                Console.WriteLine("Jedynie pojedyncze karty można przekładać na stos końcowy.");
+                                break;
+                            }
+                            if (ValidMovement(chosenCard, dest))
+                            {
+                                dest.Add(chosenCard);
+                                targetCol.Cards.Remove(chosenCard);
+                                targetCol.Last().Covered = false;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Ten ruch nie jest dozwolony.");
+                            }
                         }
                         else
                         {
-                            Console.WriteLine("Ten ruch nie jest dozwolony.");
+                            Console.WriteLine("Niepoprwawny wybór.");
                         }
                         break;
                     }
                 case "T":
                     {
-                        Console.WriteLine("Chcę położyć kartę na\n[S] - stosie końcowym\n[K] - kolumnie");
+                        if (RevealedCard == null) { Console.WriteLine("Nie odkryto żadnej karty z talii."); break; }
+                        Console.WriteLine("Chcę położyć kartę na\n[S] - stole\n[K] - stosie końcowym");
                         choice = Console.ReadLine();
                         choice = choice.ToUpper();
-                        if (choice == "S")
+                        if (choice == "K")
                         {
-                            List<Card> dest = Stack[DeckCard.Suit];
-                            if (ValidMovement(DeckCard, dest))
+                            List<Card> dest = FinalStacks[RevealedCard.Suit];
+                            if (ValidMovement(RevealedCard, dest))
                             {
-                                dest.Add(DeckCard);
-                                DeckCard = null;
+                                dest.Add(RevealedCard);
+                                RevealedCard = null; // needs to be procesed first
                             }
                             else
                             {
                                 Console.WriteLine("Ten ruch nie jest dozwolony.");
                             }
                         } 
-                        else if (choice == "K")
+                        else if (choice == "S")
                         {
-                            Console.WriteLine($"Na której kolumnie chcesz położyć {DeckCard}?");
+                            Console.WriteLine($"Na której kolumnie chcesz położyć {RevealedCard}?");
                             choice = Console.ReadLine();
                             int colNum = int.Parse(choice);
                             if (colNum < 1 || colNum > 7) { Console.WriteLine("Ta kolumna nie istnieje."); }
-                            if (ValidMovement(DeckCard, Columns[colNum - 1]))
+                            if (ValidMovement(RevealedCard, Columns[colNum - 1]))
                             {
-                                Columns[colNum - 1].Cards.Add(DeckCard);
-                                DeckCard = null;
+                                Columns[colNum - 1].Cards.Add(RevealedCard);
+                                RevealedCard = null; // needs to be procesed first
                             }
                             else
                             {
@@ -288,26 +316,20 @@ namespace Pasjans
                     {
                         if (Deck.Count == 0)
                         {
-                            DeckCard.Covered = true;
-                            SpentDeck.Add(DeckCard);
-                            DeckCard = null;
+                            RevealedCard.Covered = true;
+                            SpentDeck.Add(RevealedCard);
+                            RevealedCard = null;
                             Deck = SpentDeck;
-                            SpentDeck = new List<Card>();
+                            SpentDeck.Clear();
                             ShuffleDeck();
-                        }
-                        else if (DeckCard == null)
-                        {
-                            NextDeckCard();
                         }
                         else
                         {
-                            DeckCard.Covered = true;
-                            SpentDeck.Add(DeckCard);
                             NextDeckCard();
                         }
                         break;
                     }
-                case "F":
+                case "K":
                     {
                         // move
                         break;

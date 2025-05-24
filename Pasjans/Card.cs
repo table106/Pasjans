@@ -3,7 +3,7 @@
     /// <summary>
     /// Kontener na istniejące kolory
     /// </summary>
-    enum Color
+    public enum Color
     {
         Red,
         Black
@@ -57,7 +57,7 @@
         public override string ToString()
         {
             if (Covered) return "---";
-            if (Rank == "10") return $"10{Icon}";
+            else if (Rank == "10") return $"10{Icon}";
             return $"{Rank} {Icon}";
         }
 

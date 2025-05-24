@@ -22,20 +22,9 @@ namespace Pasjans
             set { Cards[i] = value; }
         }
 
-        public override string ToString()
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach (Card card in Cards)
-            {
-                sb.AppendLine(card.ToString());
-                sb.AppendLine();
-            }
-            return sb.ToString();
-        }
-
         public IEnumerator<Card> GetEnumerator()
         {
-            return this.Cards.GetEnumerator();
+            return Cards.GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
