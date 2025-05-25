@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Text;
 
@@ -15,7 +14,7 @@ namespace Pasjans
         private List<Card> Deck;
         private readonly Dictionary<string, List<Card>> FinalStacks;
         private Card RevealedCard;
-        private List<Card> SpentDeck;
+        private readonly List<Card> SpentDeck;
         private static readonly Random random = new Random();
         public static readonly string[] RANKS = { "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2", "A" };
         public static readonly string[] SUITS = { "spades", "hearts", "diamonds", "clubs" };
@@ -63,11 +62,28 @@ namespace Pasjans
         }
 
         /// <summary>
-        /// Miesza zawartość talii
+        /// Określa, czy gra dobiegła końca
+        /// </summary>
+        /// <returns><c>bool</c>: czy nastąpił koniec gry</returns>
+        public bool Finished()
+        {
+            foreach (var stackPair in FinalStacks)
+            {
+                List<Card> expect = new List<Card>();
+                foreach (string rank in RANKS.Reverse().ToArray())
+                {
+                    expect.Add(new Card(rank, stackPair.Key));
+                }
+                if (expect != stackPair.Value) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Miesza zawartość talii algorytmem Fisher-Yates
         /// </summary>
         private void ShuffleDeck()
         {
-            // fisher-yates
             for (int i = Deck.Count - 1; i > 0; i--)
             {
                 int j = random.Next(i + 1);
@@ -76,18 +92,27 @@ namespace Pasjans
         }
 
         /// <summary>
-        /// Odkrywa nową kartę z talii, poprzednią kładzie na stos zużytych. Nie używać gdy <c>DeckCard</c> to <c>null</c>!
+        /// Zużywa odkrytą kartę
         /// </summary>
-        private void NextDeckCard()
+        private void ConsumeRevealed()
+        {
+            RevealedCard.Covered = true;
+            SpentDeck.Add(new Card(RevealedCard));
+            RevealedCard = null;
+        }
+
+        /// <summary>
+        /// Odkrywa nową kartę z talii
+        /// </summary>
+        private void RevealNextCard()
         {
             if (RevealedCard != null)
             {
-                RevealedCard.Covered = true;
-                SpentDeck.Add(RevealedCard);
+                ConsumeRevealed();
             }
             RevealedCard = Deck[0];
-            RevealedCard.Covered = false;
             Deck.RemoveAt(0);
+            RevealedCard.Covered = false;
         }
 
         /// <summary>
@@ -121,7 +146,7 @@ namespace Pasjans
             {
                 return target.Rank == "A";
             }
-            return Array.IndexOf(RANKS, dest[dest.Count-1].Rank) - 1 == Array.IndexOf(RANKS, target.Rank);
+            return Array.IndexOf(RANKS, dest[dest.Count - 1].Rank) - 1 == Array.IndexOf(RANKS, target.Rank);
         }
 
         /// <summary>
@@ -134,7 +159,7 @@ namespace Pasjans
             // odkryta
             if (RevealedCard != null)
             {
-                ret.Append(RevealedCard.ToString()+"   ");
+                ret.Append(RevealedCard.ToString() + "   ");
             }
             else
             {
@@ -150,7 +175,7 @@ namespace Pasjans
             {
                 ret.Append("               ");
             }
-            
+
             // stosy końcowe
             foreach (var stack in FinalStacks)
             {
@@ -159,6 +184,7 @@ namespace Pasjans
                 else { ret.Append(stack.Value[topCardIndex].ToString() + "   "); }
             }
             ret.Length--;
+            ret.AppendLine();
             ret.AppendLine();
 
             // numery na górze
@@ -174,7 +200,7 @@ namespace Pasjans
                 .Select(col => col.Cards.Count)
                 .DefaultIfEmpty(0).Max(); x++)
             {
-                ret.Append($"{x + 1}. ");
+                ret.Append($"{x + 1}." + (x+1 < 10 ? " " : ""));
                 for (int y = 0; y < 7; y++)
                 {
                     Column current = Columns[y];
@@ -197,41 +223,62 @@ namespace Pasjans
         /// <summary>
         /// Wchodzi w interakcję z użytkownikiem
         /// </summary>
-        public void Interact()
+        public void Interact(out bool userEnd)
         {
+            userEnd = false;
             Console.WriteLine("Jaki chcesz wykonać ruch?");
             Console.WriteLine("[S] - Przełożyć karty ze stołu");
             Console.WriteLine("[T] - Przełożyć odkrytą kartę z talii");
             Console.WriteLine("[N] - " + (Deck.Count != 0 ? "Odkryć kartę z talii" : "Przetasować talię"));
             Console.WriteLine("[K] - Przełożyć kartę ze stosu końcowego");
-            string choice = Console.ReadLine();
-            choice = choice.ToUpper();
+            Console.WriteLine("[W] - Zakończyć tą rozgrywkę");
+            string choice = Console.ReadLine().ToUpper();
             switch (choice)
             {
                 case "S":
                     {
                         Console.WriteLine("Wybierz kolumnę");
-                        int targetColIndex = int.Parse(Console.ReadLine())-1;
+                        if (!int.TryParse(Console.ReadLine(), out int targetColIndex))
+                        {
+                            Console.WriteLine("Wprowadzono niepoprawną wartość.");
+                            break;
+                        }
+                        if (targetColIndex + 1 > 7 || targetColIndex + 1 < 1)
+                        {
+                            Console.WriteLine("Ta kolumna nie istnieje.");
+                            break;
+                        }
                         Column targetCol = Columns[targetColIndex];
                         Console.WriteLine("Wybierz kartę");
                         int i = 0;
-                        foreach(Card card in targetCol)
+                        foreach (Card card in targetCol)
                         {
                             i++;
                             if (card.Covered == true) { continue; }
-                            Console.WriteLine($"{i}. "+card);
+                            Console.WriteLine($"{i}. " + card);
                         }
-                        int cardChoiceIndex = int.Parse(Console.ReadLine())-1;
-                        Card chosenCard = targetCol.Cards[cardChoiceIndex];
+                        if (!int.TryParse(Console.ReadLine(), out int cardChoiceIndex))
+                        {
+                            Console.WriteLine("Wprowadzono niepoprawną wartość.");
+                            break;
+                        }
+                        Card chosenCard = targetCol[cardChoiceIndex];
                         Console.WriteLine("Przenieś na\n[S] - stół\n[K] - stos końcowy");
-                        choice = Console.ReadLine();
-                        choice = choice.ToUpper();
+                        choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
                         {
-                            Console.WriteLine($"Przenieś {chosenCard} do której kolumny?");
-                            int destColIndex = int.Parse(Console.ReadLine()) - 1;
+                            Console.WriteLine("Przenieść do której kolumny?");
+                            if (!int.TryParse(Console.ReadLine(), out int destColIndex))
+                            {
+                                Console.WriteLine("Wprowadzono niepoprawną wartość.");
+                                break;
+                            }
+                            if (destColIndex + 1 > 7 || destColIndex + 1 < 1)
+                            {
+                                Console.WriteLine("Ta kolumna nie istnieje.");
+                                break;
+                            }
                             Column destCol = Columns[destColIndex];
-                            Column newCol = new Column();
                             if (ValidMovement(chosenCard, destCol))
                             {
                                 int countToMove = targetCol.Cards.Count - cardChoiceIndex;
@@ -258,7 +305,7 @@ namespace Pasjans
                             {
                                 dest.Add(chosenCard);
                                 targetCol.Cards.Remove(chosenCard);
-                                targetCol.Last().Covered = false;
+                                if (targetCol.Cards.Count > 0) targetCol.Last().Covered = false;
                             }
                             else
                             {
@@ -267,7 +314,7 @@ namespace Pasjans
                         }
                         else
                         {
-                            Console.WriteLine("Niepoprwawny wybór.");
+                            Console.WriteLine("Niepoprawny wybór.");
                         }
                         break;
                     }
@@ -275,31 +322,34 @@ namespace Pasjans
                     {
                         if (RevealedCard == null) { Console.WriteLine("Nie odkryto żadnej karty z talii."); break; }
                         Console.WriteLine("Chcę położyć kartę na\n[S] - stole\n[K] - stosie końcowym");
-                        choice = Console.ReadLine();
-                        choice = choice.ToUpper();
-                        if (choice == "K")
+                        choice = Console.ReadLine().ToUpper();
+                        if (choice == "S")
                         {
-                            List<Card> dest = FinalStacks[RevealedCard.Suit];
-                            if (ValidMovement(RevealedCard, dest))
+                            Console.WriteLine($"Na której kolumnie położyć {RevealedCard}?");
+                            choice = Console.ReadLine();
+                            if (!int.TryParse(choice, out int colNum))
                             {
-                                dest.Add(RevealedCard);
-                                RevealedCard = null; // needs to be procesed first
+                                Console.WriteLine("Wprowadzono niepoprawną wartość.");
+                                break;
+                            }
+                            if (colNum < 1 || colNum > 7) { Console.WriteLine("Ta kolumna nie istnieje."); break; }
+                            if (ValidMovement(RevealedCard, Columns[colNum - 1]))
+                            {
+                                Columns[colNum - 1].Cards.Add(new Card(RevealedCard));
+                                ConsumeRevealed();
                             }
                             else
                             {
                                 Console.WriteLine("Ten ruch nie jest dozwolony.");
                             }
-                        } 
-                        else if (choice == "S")
+                        }
+                        else if (choice == "K")
                         {
-                            Console.WriteLine($"Na której kolumnie chcesz położyć {RevealedCard}?");
-                            choice = Console.ReadLine();
-                            int colNum = int.Parse(choice);
-                            if (colNum < 1 || colNum > 7) { Console.WriteLine("Ta kolumna nie istnieje."); }
-                            if (ValidMovement(RevealedCard, Columns[colNum - 1]))
+                            List<Card> dest = FinalStacks[RevealedCard.Suit];
+                            if (ValidMovement(RevealedCard, dest))
                             {
-                                Columns[colNum - 1].Cards.Add(RevealedCard);
-                                RevealedCard = null; // needs to be procesed first
+                                dest.Add(new Card(RevealedCard));
+                                ConsumeRevealed();
                             }
                             else
                             {
@@ -316,23 +366,93 @@ namespace Pasjans
                     {
                         if (Deck.Count == 0)
                         {
-                            RevealedCard.Covered = true;
-                            SpentDeck.Add(RevealedCard);
-                            RevealedCard = null;
-                            Deck = SpentDeck;
+                            ConsumeRevealed();
+                            Deck = SpentDeck.ToList();
                             SpentDeck.Clear();
                             ShuffleDeck();
                         }
                         else
                         {
-                            NextDeckCard();
+                            RevealNextCard();
                         }
                         break;
                     }
                 case "K":
                     {
-                        // move
+                        Console.WriteLine("Wybierz kartę");
+                        foreach (var stackPair in FinalStacks)
+                        {
+                            if (stackPair.Value.Count > 0)
+                            {
+                                Console.WriteLine($"{stackPair.Key} - {stackPair.Value.Last()}");
+                            }   
+                        }
+                        choice = Console.ReadLine();
+                        if (!SUITS.Contains(choice))
+                        {
+                            Console.WriteLine("Wprowadzono niepoprawną wartość.");
+                            break;
+                        } // finish move from finalstack to column
+                        if (targetColIndex + 1 > 7 || targetColIndex + 1 < 1)
+                        {
+                            Console.WriteLine("Ta kolumna nie istnieje.");
+                            break;
+                        }
+                        Column targetCol = Columns[targetColIndex];
+                        Console.WriteLine("Wybierz kartę");
+                        int i = 0;
+                        foreach (Card card in targetCol)
+                        {
+                            i++;
+                            if (card.Covered == true) { continue; }
+                            Console.WriteLine($"{i}. " + card);
+                        }
+                        if (!int.TryParse(Console.ReadLine(), out int cardChoiceIndex))
+                        {
+                            Console.WriteLine("Wprowadzono niepoprawną wartość.");
+                            break;
+                        }
+                        Card chosenCard = targetCol[cardChoiceIndex];
+                        Console.WriteLine("Przenieś na\n[S] - stół\n[K] - stos końcowy");
+                        choice = Console.ReadLine().ToUpper();
+                        if (choice == "S")
+                        {
+                            Console.WriteLine("Przenieść do której kolumny?");
+                            if (!int.TryParse(Console.ReadLine(), out int destColIndex))
+                            {
+                                Console.WriteLine("Wprowadzono niepoprawną wartość.");
+                                break;
+                            }
+                            if (destColIndex + 1 > 7 || destColIndex + 1 < 1)
+                            {
+                                Console.WriteLine("Ta kolumna nie istnieje.");
+                                break;
+                            }
+                            Column destCol = Columns[destColIndex];
+                            if (ValidMovement(chosenCard, destCol))
+                            {
+                                int countToMove = targetCol.Cards.Count - cardChoiceIndex;
+                                List<Card> cardsToMove = targetCol.Cards.GetRange(cardChoiceIndex, countToMove);
+                                targetCol.Cards.RemoveRange(cardChoiceIndex, countToMove);
+                                destCol.Cards.AddRange(cardsToMove);
+
+                                if (targetCol.Cards.Count > 0) targetCol.Last().Covered = false;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Ten ruch nie jest dozwolony.");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Niepoprawny wybór.");
+                        }
                         break;
+                    }
+                case "W":
+                    {
+                        userEnd = true;
+                        return;
                     }
                 default:
                     {

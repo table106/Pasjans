@@ -53,6 +53,14 @@
                     }
             }
         }
+        public Card(Card original)
+        {
+            Rank = original.Rank;
+            Suit = original.Suit;
+            Covered = original.Covered;
+            Color = original.Color;
+            Icon = original.Icon;
+        }
 
         public override string ToString()
         {
