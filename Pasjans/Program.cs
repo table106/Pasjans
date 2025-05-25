@@ -41,11 +41,11 @@ namespace Pasjans
             while (true)
             {
                 game.Display();
-                game.Interact(out userEnd);
+                game.Interact(out userEnd); // problem: duplikowane karty
                 if (game.Finished() || userEnd) break;
                 Console.Write("\n\n");
             }
-            Console.WriteLine("Chcesz zagrać jeszcze raz? [t] - Tak\n[n] - Nie");
+            Console.WriteLine("Chcesz zagrać jeszcze raz?\n[t] - Tak\n[n] - Nie");
             if (Console.ReadLine() == "t") Main(args);
         }
     }

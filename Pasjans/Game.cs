@@ -193,7 +193,7 @@ namespace Pasjans
         public void Interact(out bool userEnd)
         {
             userEnd = false;
-            Console.WriteLine("Jaki chcesz wykonać ruch?");
+            Console.WriteLine("Co chcesz zrobić?");
             Console.WriteLine("[S] - Przełożyć karty ze stołu");
             Console.WriteLine("[T] - Przełożyć odkrytą kartę z talii");
             Console.WriteLine("[N] - " + (Deck.Count != 0 ? "Odkryć kartę z talii" : "Przetasować talię"));
@@ -210,12 +210,12 @@ namespace Pasjans
                             Console.WriteLine("Wprowadzono niepoprawną wartość.");
                             break;
                         }
-                        if (targetColIndex + 1 > 7 || targetColIndex + 1 < 1)
+                        if (targetColIndex > 7 || targetColIndex < 1)
                         {
                             Console.WriteLine("Ta kolumna nie istnieje.");
                             break;
                         }
-                        Column targetCol = Columns[targetColIndex];
+                        Column targetCol = Columns[targetColIndex-1];
                         Console.WriteLine("Wybierz kartę");
                         int i = 0;
                         foreach (Card card in targetCol)
@@ -229,7 +229,7 @@ namespace Pasjans
                             Console.WriteLine("Wprowadzono niepoprawną wartość.");
                             break;
                         }
-                        Card chosenCard = targetCol[cardChoiceIndex];
+                        Card chosenCard = targetCol[cardChoiceIndex-1];
                         Console.WriteLine("Przenieś na\n[S] - stół\n[K] - stos końcowy");
                         choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
@@ -240,17 +240,17 @@ namespace Pasjans
                                 Console.WriteLine("Wprowadzono niepoprawną wartość.");
                                 break;
                             }
-                            if (destColIndex + 1 > 7 || destColIndex + 1 < 1)
+                            if (destColIndex > 7 || destColIndex < 1)
                             {
                                 Console.WriteLine("Ta kolumna nie istnieje.");
                                 break;
                             }
-                            Column destCol = Columns[destColIndex];
+                            Column destCol = Columns[destColIndex - 1];
                             if (ValidMovement(chosenCard, destCol))
                             {
-                                int countToMove = targetCol.Cards.Count - cardChoiceIndex;
-                                List<Card> cardsToMove = targetCol.Cards.GetRange(cardChoiceIndex, countToMove);
-                                targetCol.Cards.RemoveRange(cardChoiceIndex, countToMove);
+                                int countToMove = targetCol.Cards.Count - cardChoiceIndex + 1;
+                                List<Card> cardsToMove = targetCol.Cards.GetRange(cardChoiceIndex - 1, countToMove);
+                                targetCol.Cards.RemoveRange(cardChoiceIndex - 1, countToMove);
                                 destCol.Cards.AddRange(cardsToMove);
 
                                 if (targetCol.Cards.Count > 0) targetCol.Last().Covered = false;
@@ -279,7 +279,7 @@ namespace Pasjans
                 case "T":
                     {
                         if (RevealedCard == null) { Console.WriteLine("Nie odkryto żadnej karty z talii."); break; }
-                        Console.WriteLine("Chcę położyć kartę na\n[S] - stole\n[K] - stosie końcowym");
+                        Console.WriteLine("Przełóż kartę na\n[S] - stół\n[K] - stos końcowy");
                         choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
                         {
