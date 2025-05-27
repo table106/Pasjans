@@ -37,16 +37,20 @@ namespace Pasjans
             Console.Title = "Pasjans";
 
             Game game = new Game();
-            bool userEnd = false;
             while (true)
             {
                 game.Display();
-                game.Interact(out userEnd); // problem: duplikowane karty
+                game.Interact(out bool userEnd);
                 if (game.Finished() || userEnd) break;
-                Console.Write("\n\n");
+                Console.Clear();
             }
+            Console.Clear();
             Console.WriteLine("Chcesz zagrać jeszcze raz?\n[t] - Tak\n[n] - Nie");
-            if (Console.ReadLine() == "t") Main(args);
+            if (Console.ReadLine() == "t") 
+            {
+                Console.Clear();
+                Main(args);
+            }
         }
     }
 }
