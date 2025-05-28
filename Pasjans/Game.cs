@@ -220,6 +220,11 @@ namespace Pasjans
                             break;
                         }
                         Card chosenCard = targetCol[cardChoiceIndex-1];
+                        if (chosenCard.Covered)
+                        {
+                            Error("Wybrana karta jest zakryta.");
+                            break;
+                        }
                         Console.WriteLine("Przenieś na\n[S] - stół\n[K] - stos końcowy");
                         choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
@@ -306,9 +311,9 @@ namespace Pasjans
                     }
                 case "N":
                     {
+                        if (RevealedCard != null) SpentDeck.Add(new Card(RevealedCard));
                         if (Deck.Count == 0)
                         {
-                            if (RevealedCard != null) SpentDeck.Add(new Card(RevealedCard));
                             Deck = SpentDeck.ToList();
                             SpentDeck.Clear();
                             ShuffleDeck();
