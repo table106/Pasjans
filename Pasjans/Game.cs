@@ -189,12 +189,14 @@ namespace Pasjans
             Console.WriteLine("[N] - " + (Deck.Count != 0 ? "Odkryć kartę z talii" : "Przetasować talię"));
             Console.WriteLine("[K] - Przełożyć kartę ze stosu końcowego");
             Console.WriteLine("[W] - Zakończyć tą rozgrywkę");
+            Console.Write(">");
             string choice = Console.ReadLine().ToUpper();
             switch (choice)
             {
                 case "S":
                     {
                         Console.WriteLine("Wybierz kolumnę");
+                        Console.Write(">");
                         if (!int.TryParse(Console.ReadLine(), out int targetColIndex))
                         {
                             Error("Wprowadzono niepoprawną wartość.");
@@ -214,9 +216,15 @@ namespace Pasjans
                             if (card.Covered == true) continue;
                             Console.WriteLine($"{i}. " + card);
                         }
+                        Console.Write(">");
                         if (!int.TryParse(Console.ReadLine(), out int cardChoiceIndex))
                         {
                             Error("Wprowadzono niepoprawną wartość.");
+                            break;
+                        }
+                        if (cardChoiceIndex > targetCol.Cards.Count || cardChoiceIndex < 0)
+                        {
+                            Error("Ta karta nie istnieje.");
                             break;
                         }
                         Card chosenCard = targetCol[cardChoiceIndex-1];
@@ -226,10 +234,12 @@ namespace Pasjans
                             break;
                         }
                         Console.WriteLine("Przenieś na\n[S] - stół\n[K] - stos końcowy");
+                        Console.Write(">");
                         choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
                         {
                             Console.WriteLine("Przenieść do której kolumny?");
+                            Console.Write(">");
                             if (!int.TryParse(Console.ReadLine(), out int destColIndex))
                             {
                                 Error("Wprowadzono niepoprawną wartość.");
@@ -273,12 +283,18 @@ namespace Pasjans
                     }
                 case "T":
                     {
-                        if (RevealedCard == null) { Error("Nie odkryto żadnej karty z talii."); break; }
+                        if (RevealedCard == null) 
+                        { 
+                            Error("Nie odkryto żadnej karty z talii."); 
+                            break;
+                        }
                         Console.WriteLine("Przełóż kartę na\n[S] - stół\n[K] - stos końcowy");
+                        Console.Write(">");
                         choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
                         {
                             Console.WriteLine($"Na której kolumnie położyć {RevealedCard}?");
+                            Console.Write(">");
                             if (!int.TryParse(Console.ReadLine(), out int colNum))
                             {
                                 Error("Wprowadzono niepoprawną wartość.");
@@ -311,7 +327,11 @@ namespace Pasjans
                     }
                 case "N":
                     {
-                        if (RevealedCard != null) SpentDeck.Add(new Card(RevealedCard));
+                        if (RevealedCard != null)
+                        {
+                            SpentDeck.Add(new Card(RevealedCard));
+                            RevealedCard = null;
+                        }
                         if (Deck.Count == 0)
                         {
                             Deck = SpentDeck.ToList();
@@ -329,6 +349,7 @@ namespace Pasjans
                 case "K":
                     {
                         Console.WriteLine("Wybierz kartę");
+                        Console.Write(">");
                         foreach (var stackPair in FinalStacks)
                         {
                             if (stackPair.Value.Count > 0) Console.WriteLine($"{stackPair.Key} - {stackPair.Value.Last()}");
@@ -341,6 +362,7 @@ namespace Pasjans
                         }
                         Card targetCard = FinalStacks[choice].Last();
                         Console.WriteLine("Przenieść do której kolumny?");
+                        Console.Write(">");
                         if (!int.TryParse(Console.ReadLine(), out int colNum))
                         {
                             Error("Wprowadzono niepoprawną wartość.");
