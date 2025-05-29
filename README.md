@@ -1,6 +1,15 @@
 # Informacje
 ## Uruchamianie
-xd
+### Krok 1.
+Pobierz plik .zip z [https://github.com/table106/Pasjans/releases/tag/v1.0](https://github.com/table106/Pasjans/releases/download/v1.0/13-15_CS_Oskar_Bartosiewicz.zip)
+### Krok 2.
+Wypakuj pobrany plik
+### Krok 3.
+Uruchom plik setup.exe (możliwe, że antywirus oznaczy program jako niebezpieczny - jest to fałszywy alarm)
+### Krok 4.
+Poczekaj na zakończenie instalacji. Okno gry powinno samo wyskoczyć, a jeżeli tak się nie stanie:
+### Krok 5.
+W menu start wyszukaj program "Pasjans" i wciśnij enter
 ## Instrukcje do gry
 Użytkownik poproszony o podjęcie wyboru wciska wybrany klawisz by wykonać ruch.
 S - Przełożenie karty/kart ze stołu\
