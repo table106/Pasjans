@@ -159,6 +159,8 @@ namespace Pasjans
         /// </summary>
         public void Display()
         {
+            /// <summary>Ustawia kolor tekstu konsoli na podstawie karty</summary>
+            /// <param name="card">Karta, dla której ustawiany jest kolor</param>
             void SetCardColor(Card card)
             {
                 if (card.Color == Color.Red) Console.ForegroundColor = ConsoleColor.Red;
