@@ -21,13 +21,11 @@ namespace Pasjans
             set { Cards[i] = value; }
         }
 
+        /// <summary>Metoda umożliwiająca iterację po obiekcie Column</summary>
+        /// <returns>Enumerowalny obiekt, po którym można iterować</returns>
         public IEnumerator<Card> GetEnumerator()
         {
             return Cards.GetEnumerator();
-        }
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
     }
 }
