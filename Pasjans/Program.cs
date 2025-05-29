@@ -24,6 +24,7 @@ namespace Pasjans
             if (Console.ReadLine().ToUpper() == "T") 
             {
                 Console.Clear();
+                Console.ForegroundColor = ConsoleColor.White;
                 Main(args);
             }
         }

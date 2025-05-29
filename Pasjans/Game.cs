@@ -10,7 +10,7 @@ namespace Pasjans
     /// </summary>
     internal class Game
     {
-        public List<Column> Columns { get; }
+        private List<Column> Columns { get; }
         private List<Card> Deck;
         private readonly Dictionary<string, List<Card>> FinalStacks;
         private Card RevealedCard;
@@ -61,7 +61,7 @@ namespace Pasjans
         /// <summary>
         /// Wyświetla błąd
         /// </summary>
-        /// <param name="msg"><c>string</c>: Wiadomość do przekazania</param>
+        /// <param name="msg">Wiadomość do przekazania</param>
         private void Error(string msg)
         {
             Console.WriteLine(msg);
@@ -72,17 +72,15 @@ namespace Pasjans
         /// <summary>
         /// Określa, czy gra dobiegła końca
         /// </summary>
-        /// <returns><c>bool</c>: czy nastąpił koniec gry</returns>
+        /// <returns>Czy nastąpił koniec gry</returns>
         public bool Finished()
         {
-            foreach (var stackPair in FinalStacks)
+            foreach (var pair in FinalStacks)
             {
-                List<Card> expect = new List<Card>();
-                foreach (string rank in RANKS.Reverse().ToArray())
+                if (pair.Value.Count != 13)
                 {
-                    expect.Add(new Card(rank, stackPair.Key));
+                    return false;
                 }
-                if (expect != stackPair.Value) return false;
             }
             return true;
         }
@@ -104,12 +102,12 @@ namespace Pasjans
         /// </summary>
         /// <param name="target">Karta ruszana</param>
         /// <param name="dest">Kolumna na którą kładziemy <c>target</c></param>
-        /// <returns><c>bool</c>: Poprawność ruchu</returns>
+        /// <returns>Poprawność ruchu</returns>
         private bool ValidMovement(Card target, Column dest)
         {
             if (dest.Cards.Count == 0) return target.Rank == "K";
             Card last = dest.Last();
-            if (last.Rank == "2") return false;
+            if (last.Rank == "A") return false;
             return target.Color != last.Color && Array.IndexOf(RANKS, last.Rank) + 1 == Array.IndexOf(RANKS, target.Rank);
         }
         /// <summary>
@@ -117,7 +115,7 @@ namespace Pasjans
         /// </summary>
         /// <param name="target">Karta ruszana</param>
         /// <param name="dest">Stos końcowy na który kładziemy</param>
-        /// <returns><c>bool</c>: Poprawność ruchu</returns>
+        /// <returns>Poprawność ruchu</returns>
         private bool ValidMovement(Card target, List<Card> dest)
         {
             if (dest.Count == 0) return target.Rank == "A";
@@ -125,56 +123,124 @@ namespace Pasjans
         }
 
         /// <summary>
+        /// Wprowadza oraz waliduje liczbę od użytkownika.
+        /// </summary>
+        /// <param name="prompt">Zapytanie do użytkownika</param>
+        /// <param name="min">Minimalna wartość wymagana</param>
+        /// <param name="max">Maksymalna wartość wymagana</param>
+        /// <param name="errorMessage">Wiadomość błędu do wyświetlenia</param>
+        /// <param name="result">Wprowadzona liczba</param>
+        /// <returns>Poprawność wprowadzonych danych</returns>
+        private bool GetIntInput(string prompt, int min, int max, string errorMessage, out int result)
+        {
+            Console.WriteLine(prompt);
+            Console.Write(">");
+            if (int.TryParse(Console.ReadLine(), out result))
+            {
+                if (result >= min && result <= max)
+                {
+                    return true;
+                }
+                else
+                {
+                    Error(errorMessage);
+                    return false;
+                }
+            }
+            else
+            {
+                Error("Wprowadzono niepoprawną wartość.");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Wyświetla stan kolumn, talii, odkrytej karty oraz stosów końcowych
         /// </summary>
         public void Display()
         {
-            StringBuilder ret = new StringBuilder();
+            void SetCardColor(Card card)
+            {
+                if (card.Color == Color.Red) Console.ForegroundColor = ConsoleColor.Red;
+                else Console.ForegroundColor = ConsoleColor.White;
+            }
 
-            // odkryta
-            if (RevealedCard != null) ret.Append(RevealedCard.ToString() + "   ");
-            else ret.Append("      ");
+            // odkryta karta z talii
+            if (RevealedCard != null)
+            {
+                SetCardColor(RevealedCard);
+                Console.Write(RevealedCard.ToString());
+                Console.Write("    ");
+            }
+            else
+            {
+                Console.Write("       ");
+            }
+            Console.ForegroundColor = ConsoleColor.White;
 
             // talia
-            if (Deck.Count != 0) ret.Append("---\t     ");
-            else ret.Append("               ");
+            if (Deck.Count != 0)
+            {
+                Console.Write("---\t        "); 
+            }
+            else
+            {
+                Console.Write("                 ");
+            }
 
             // stosy końcowe
-            foreach (var stack in FinalStacks)
+            foreach (KeyValuePair<string, List<Card>> stack in FinalStacks)
             {
                 int topCardIndex = stack.Value.Count - 1;
-                if (topCardIndex < 0 || stack.Value[topCardIndex] == null) ret.Append("---   ");
-                else { ret.Append(stack.Value[topCardIndex].ToString() + "   "); }
+                if (topCardIndex < 0 || stack.Value[topCardIndex] == null)
+                {
+                    Console.Write("---    ");
+                }
+                else
+                {
+                    Card topCard = stack.Value[topCardIndex];
+                    SetCardColor(topCard);
+                    Console.Write(topCard.ToString());
+                    Console.Write("    ");
+                }
+                Console.ForegroundColor = ConsoleColor.White;
             }
-            ret.Length--;
-            ret.AppendLine();
-            ret.AppendLine();
+            Console.WriteLine();
+            Console.WriteLine();
 
-            // numery na górze
-            ret.Append("   ");
-            for (int x = 1; x <= 7; x++) ret.Append($" {x}    ");
-            ret.AppendLine();
-
-            // cards
-            for (int x = 0; x < Columns.Where(col => col != null && col.Cards != null)
-                .Select(col => col.Cards.Count)
-                .DefaultIfEmpty(0).Max(); x++)
+            // numery kolumn
+            Console.Write("   ");
+            for (int x = 1; x <= 7; x++)
             {
-                ret.Append($"{x + 1}." + (x+1 < 10 ? " " : ""));
+                Console.Write($" {x}     ");
+            }
+            Console.WriteLine();
+
+            // karty
+            for (int x = 0; x < Columns.Select(col => col.Cards.Count).DefaultIfEmpty(0).Max(); x++)
+            {
+                Console.Write($"{x + 1}." + (x + 1 < 10 ? " " : ""));
+
                 for (int y = 0; y < 7; y++)
                 {
                     Column current = Columns[y];
                     if (current.Cards.Count > x)
                     {
                         Card card = current[x];
-                        ret.Append(card);
+                        if (!card.Covered) SetCardColor(card);
+                        Console.Write(card.ToString());
                     }
-                    else ret.Append("   ");
-                    ret.Append("   ");
+                    else
+                    {
+                        Console.Write("   ");
+                    }
+                    Console.Write("    ");
+                    Console.ForegroundColor = ConsoleColor.White;
                 }
-                ret.AppendLine();
+                Console.WriteLine();
             }
-            Console.Write(ret.ToString());
+
+            Console.ForegroundColor = ConsoleColor.White;
         }
 
         /// <summary>
@@ -195,38 +261,15 @@ namespace Pasjans
             {
                 case "S":
                     {
-                        Console.WriteLine("Wybierz kolumnę");
-                        Console.Write(">");
-                        if (!int.TryParse(Console.ReadLine(), out int targetColIndex))
-                        {
-                            Error("Wprowadzono niepoprawną wartość.");
-                            break;
-                        }
-                        if (targetColIndex > 7 || targetColIndex < 1)
-                        {
-                            Error("Ta kolumna nie istnieje.");
-                            break;
-                        }
+                        if (!GetIntInput("Wybierz kolumnę", 1, 7, "Ta kolumna nie istnieje.", out int targetColIndex)) break;
                         Column targetCol = Columns[targetColIndex-1];
-                        Console.WriteLine("Wybierz kartę");
-                        int i = 0;
-                        foreach (Card card in targetCol)
+                        for (int i = 0; i < targetCol.Cards.Count; i++)
                         {
-                            i++;
-                            if (card.Covered == true) continue;
-                            Console.WriteLine($"{i}. " + card);
+                            Card card = targetCol.Cards[i];
+                            if (card.Covered) continue;
+                            Console.WriteLine($"{i+1}. " + card);
                         }
-                        Console.Write(">");
-                        if (!int.TryParse(Console.ReadLine(), out int cardChoiceIndex))
-                        {
-                            Error("Wprowadzono niepoprawną wartość.");
-                            break;
-                        }
-                        if (cardChoiceIndex > targetCol.Cards.Count || cardChoiceIndex < 0)
-                        {
-                            Error("Ta karta nie istnieje.");
-                            break;
-                        }
+                        if (!GetIntInput("Wybierz kartę", 1, targetCol.Cards.Count, "Ta karta nie istnieje.", out int cardChoiceIndex)) break;
                         Card chosenCard = targetCol[cardChoiceIndex-1];
                         if (chosenCard.Covered)
                         {
@@ -238,18 +281,7 @@ namespace Pasjans
                         choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
                         {
-                            Console.WriteLine("Przenieść do której kolumny?");
-                            Console.Write(">");
-                            if (!int.TryParse(Console.ReadLine(), out int destColIndex))
-                            {
-                                Error("Wprowadzono niepoprawną wartość.");
-                                break;
-                            }
-                            if (destColIndex > 7 || destColIndex < 1)
-                            {
-                                Error("Ta kolumna nie istnieje.");
-                                break;
-                            }
+                            if (!GetIntInput("Przenieść do której kolumny?", 1, 7, "Ta kolumna nie istnieje.", out int destColIndex)) break;
                             Column destCol = Columns[destColIndex - 1];
                             if (ValidMovement(chosenCard, destCol))
                             {
@@ -293,18 +325,7 @@ namespace Pasjans
                         choice = Console.ReadLine().ToUpper();
                         if (choice == "S")
                         {
-                            Console.WriteLine($"Na której kolumnie położyć {RevealedCard}?");
-                            Console.Write(">");
-                            if (!int.TryParse(Console.ReadLine(), out int colNum))
-                            {
-                                Error("Wprowadzono niepoprawną wartość.");
-                                break;
-                            }
-                            if (colNum < 1 || colNum > 7)
-                            { 
-                                Error("Ta kolumna nie istnieje.");
-                                break; 
-                            }
+                            if (!GetIntInput($"Na której kolumnie położyc {RevealedCard}?", 1, 7, "Ta kolumna nie istnieje.", out int colNum)) break;
                             if (ValidMovement(RevealedCard, Columns[colNum - 1]))
                             {
                                 Columns[colNum - 1].Cards.Add(new Card(RevealedCard));
@@ -348,9 +369,14 @@ namespace Pasjans
                     }
                 case "K":
                     {
+                        if (!Array.TrueForAll(FinalStacks.Values.ToArray(), x => x.Count > 0))
+                        {
+                            Error("Żadna karta nie jest na stosie końcowym.");
+                            break;
+                        }
                         Console.WriteLine("Wybierz kartę");
                         Console.Write(">");
-                        foreach (var stackPair in FinalStacks)
+                        foreach (KeyValuePair<string, List<Card>> stackPair in FinalStacks)
                         {
                             if (stackPair.Value.Count > 0) Console.WriteLine($"{stackPair.Key} - {stackPair.Value.Last()}");
                         }
@@ -361,21 +387,11 @@ namespace Pasjans
                             break;
                         }
                         Card targetCard = FinalStacks[choice].Last();
-                        Console.WriteLine("Przenieść do której kolumny?");
-                        Console.Write(">");
-                        if (!int.TryParse(Console.ReadLine(), out int colNum))
-                        {
-                            Error("Wprowadzono niepoprawną wartość.");
-                            break;
-                        }
-                        if (colNum < 1 || colNum > 7)
-                        {
-                            Error("Ta kolumna nie istnieje.");
-                            break;
-                        }
+                        if (!GetIntInput("Przenieść do której kolumny?", 1, 7, "Ta kolumna nie istnieje.", out int colNum)) break;
                         if (ValidMovement(targetCard, Columns[colNum - 1]))
                         {
                             Columns[colNum - 1].Cards.Add(new Card(targetCard));
+                            FinalStacks[choice].Remove(targetCard);
                         }
                         else Error("Ten ruch nie jest dozwolony.");
                         break;
